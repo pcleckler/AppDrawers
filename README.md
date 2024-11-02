@@ -15,7 +15,7 @@ For example, if a user would like to see their desktop shortcuts as a menu on th
 
 Target
 
-    "<Install folder>AppDrawers.exe" "http://localhost:9393/AppDrawers/directory?dir=C:\Users\<userId>\Desktop"
+    "<Install folder>\AppDrawers.exe" "http://localhost:9393/AppDrawers/directory?dir=C:\Users\<userId>\Desktop"
 
 Run
 
@@ -35,7 +35,7 @@ For example, a storage folder would need to be created (such as Documents\AppDra
 
 Target
 
-    "<Install folder>AppDrawers.exe" "http://localhost:9393/AppDrawers/directory?dir=C:\Users\<userId>\Documents\AppDrawers\Clips&clipping=true"
+    "<Install folder>\AppDrawers.exe" "http://localhost:9393/AppDrawers/directory?dir=C:\Users\<userId>\Documents\AppDrawers\Clips&clipping=true"
 
 Run
 

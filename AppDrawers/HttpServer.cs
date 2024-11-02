@@ -44,7 +44,7 @@ namespace AppDrawers
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogMessage($"Server listening exception: {ex.Message}");
+                    this.logger.LogMessage($"Server listening exception: {ex.GetExceptionMessageTree()}");
                     this.logger.LogMessage(ex.StackTrace);
                 }
             }
@@ -52,9 +52,9 @@ namespace AppDrawers
 
         public void Stop()
         {
-            try { this.listener.Close(); } catch (Exception ex) { this.logger.LogMessage($"Failed to close server communication services. {ex.Message}"); }
+            try { this.listener.Close(); } catch (Exception ex) { this.logger.LogMessage($"Failed to close server communication services. {ex.GetExceptionMessageTree()}"); }
 
-            try { this.listener.Stop(); } catch (Exception ex) { this.logger.LogMessage($"Failed to stop server process. {ex.Message}"); }
+            try { this.listener.Stop(); } catch (Exception ex) { this.logger.LogMessage($"Failed to stop server process. {ex.GetExceptionMessageTree()}"); }
         }
 
         private void HandleRequest(IAsyncResult ar)
@@ -103,7 +103,7 @@ namespace AppDrawers
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     context.Response.Close();
 
-                    this.logger.LogMessage($"Server exception: {ex.Message}");
+                    this.logger.LogMessage($"Server exception: {ex.GetExceptionMessageTree()}");
                     this.logger.LogMessage(ex.StackTrace);
                 }
             }

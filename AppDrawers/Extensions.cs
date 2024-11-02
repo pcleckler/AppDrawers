@@ -149,7 +149,7 @@ namespace AppDrawers
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to access exception message tree for exception '{primaryEx.Message}'. {ex.Message}");
+                throw new Exception($"Failed to access exception message tree for exception '{primaryEx.GetExceptionMessageTree()}'. {ex.GetExceptionMessageTree()}");
             }
         }
 

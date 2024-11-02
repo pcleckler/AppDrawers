@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,9 +16,6 @@ namespace AppDrawers
     {
         private const string appName = nameof(AppDrawers);
 
-        private static string appUrl;
-        private static Logger logger;
-
         private static int port = 9393;
 
         // Define a Tuple with contentType and buffer set to null as a simple acknowledgement response
@@ -24,7 +23,7 @@ namespace AppDrawers
 
         private static Uri uriArg = null;
 
-        private static void EvaluateArguments(string[] args)
+        private static bool EvaluateArguments(string[] args)
         {
             var state = string.Empty;
 
@@ -41,7 +40,7 @@ namespace AppDrawers
                 else if (arg.Equals("/?") || arg.Equals("/help", StringComparison.OrdinalIgnoreCase))
                 {
                     Usage();
-                    return;
+                    return false;
                 }
                 else
                 {
@@ -52,6 +51,8 @@ namespace AppDrawers
                     }
                 }
             }
+
+            return true;
         }
 
         [STAThread]
@@ -59,10 +60,12 @@ namespace AppDrawers
         {
             try
             {
-                // Initialized
-                EvaluateArguments(args);
-
-                appUrl = $"http://localhost:{port}/{appName}/";
+                // Handle the command line
+                if (!EvaluateArguments(args))
+                {
+                    Usage();
+                    return;
+                }
 
                 if (uriArg != null)
                 {
@@ -71,25 +74,42 @@ namespace AppDrawers
                     return;
                 }
 
-                logger = new Logger($"{appName}-{port}-{DateTime.Now.ToString("yyyy-MM-dd-HH")}.log");
+                // Create a NotifyIcon
+                StaThread.Start(() =>
+                {
+                    var notifyIcon = new NotifyIcon()
+                    {
+                        Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location),
+                        Text = appName,
+                        Visible = true,
+                        ContextMenuStrip = new AppContextMenu(),
+                    };
 
+                    notifyIcon.ContextMenuStrip.Tag = notifyIcon;
+
+                    // Process Application Events
+                    Application.Run();
+                });
+
+                // Initialize AppDrawer
                 AppDrawer.Initialize();
 
-                // Define listening URL prefixes
-                var prefixes = new List<string>() { appUrl };
+                // Begin waiting for display requests
+                (new HttpServer(
 
-                // Define possible route handlers
-                var routes = new Dictionary<Regex, HttpServer.ResponseHandler>()
-                {
-                    { new Regex("^.*/quit$"), Quit },
-                    { new Regex("^.*/check.*$"), context => SimpleAck },
-                    { new Regex("^.*/directory.*$"), ShowDirectory },
-                };
+                    new List<string>()
+                    {
+                        $"http://localhost:{port}/{appName}/"
+                    },
+                    new Dictionary<Regex, HttpServer.ResponseHandler>()
+                    {
+                        { new Regex("^.*/directory.*$"), ShowDirectory },
+                    },
+                    new Logger($"{appName}-{port}-{DateTime.Now.ToString("yyyy-MM-dd-HH")}.log")
 
-                var server = new HttpServer(prefixes, routes, logger);
+                )).Start();
 
-                server.Start();
-
+                // Have the current thread wait while events are processed
                 while (true)
                 {
                     Application.DoEvents();
@@ -100,13 +120,6 @@ namespace AppDrawers
             {
                 MessageBox.Show($"Main program error. Terminating.\n\n{ex.GetExceptionMessageTree()}", appName, MessageBoxButtons.OK, MessageBoxIcon.Stop);
             }
-        }
-
-        private static (string, byte[]) Quit(HttpListenerContext context)
-        {
-            Process.GetCurrentProcess().Kill();
-
-            return SimpleAck;
         }
 
         private static async Task RequestDirectoryAsync()
@@ -145,8 +158,6 @@ namespace AppDrawers
         private static void Usage()
         {
             MessageBox.Show($"Usage: {appName} [/port <port>]\n\nwhere <port> is the HTTP port that the program should listen on.", appName, MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-            Quit(null);
         }
     }
 }

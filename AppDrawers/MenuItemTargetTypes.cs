@@ -26,6 +26,7 @@ namespace AppDrawers
             @"%SystemRoot%\System32\SHELL32.dll",
             3);
 
+        public static readonly MenuItemTargetTypes NewFolder = new MenuItemTargetTypes("NewFolder", string.Empty, string.Empty, 0);
         public static readonly MenuItemTargetTypes NewShortcut = new MenuItemTargetTypes("NewShortcut", string.Empty, string.Empty, 0);
         public static readonly MenuItemTargetTypes OpenFolder = new MenuItemTargetTypes("OpenFolder", string.Empty, string.Empty, 0);
         public static readonly MenuItemTargetTypes Shortcut = new MenuItemTargetTypes("Shortcut", ".lnk", string.Empty, 0);
@@ -40,6 +41,7 @@ namespace AppDrawers
 
         public static List<MenuItemTargetTypes> Values { get; } = new List<MenuItemTargetTypes>()
         {
+            NewFolder,
             OpenFolder,
             Directory,
             Shortcut,

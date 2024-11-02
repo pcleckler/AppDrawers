@@ -19,6 +19,7 @@ namespace AppDrawers
 
         private static Dictionary<MenuItemTargetTypes, Action<ToolStripMenuItem, MenuItemTarget>> menuItemActions = new Dictionary<MenuItemTargetTypes, Action<ToolStripMenuItem, MenuItemTarget>>()
         {
+            { MenuItemTargetTypes.NewFolder, CreateNewFolder },
             { MenuItemTargetTypes.OpenFolder, OpenFolder },
             { MenuItemTargetTypes.CaptureClip, CaptureClip },
             { MenuItemTargetTypes.Clip, OpenClip },
@@ -181,7 +182,7 @@ namespace AppDrawers
                         catch (Exception ex)
                         {
                             MessageBox.Show(
-                                $"Failed to duplicate fiel.\n\n{ex.Message}",
+                                $"Failed to duplicate file.\n\n{ex.GetExceptionMessageTree()}",
                                 "Duplicate",
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Exclamation);
@@ -241,8 +242,55 @@ namespace AppDrawers
                         catch (Exception ex)
                         {
                             MessageBox.Show(
-                                $"Failed to rename file.\n\n{ex.Message}",
+                                $"Failed to rename file.\n\n{ex.GetExceptionMessageTree()}",
                                 "Rename",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Exclamation);
+                        }
+                    }
+                });
+            }
+        }
+
+        private static void CreateNewFolder(ToolStripMenuItem tsmi, MenuItemTarget mit)
+        {
+            if (mit.Target is DirectoryInfo dirInfo)
+            {
+                StaThread.Start(() =>
+                {
+                    var ofd = new OpenFileDialog()
+                    {
+                        Title = $"Enter the new folder's name.",
+                        ValidateNames = false,
+                        CheckPathExists = true,
+                        CheckFileExists = false,
+                        InitialDirectory = dirInfo.FullName,
+                    };
+
+                    var result = ofd.ShowDialog();
+
+                    if (result == DialogResult.OK)
+                    {
+                        try
+                        {
+                            if (Directory.Exists(ofd.FileName))
+                            {
+                                MessageBox.Show(
+                                    $"Folder '{Path.GetFileName(ofd.FileName)}' already exists at that location.",
+                                    "New Folder",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Exclamation);
+                            }
+                            else
+                            {
+                                Directory.CreateDirectory(ofd.FileName);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(
+                                $"Failed to create folder.\n\n{ex.GetExceptionMessageTree()}",
+                                "New Folder",
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Exclamation);
                         }
@@ -273,7 +321,7 @@ namespace AppDrawers
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Failed to create the shortcut.\n\n{ex.Message}", "Create New Shortcut", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    MessageBox.Show($"Failed to create the shortcut.\n\n{ex.GetExceptionMessageTree()}", "Create New Shortcut", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
                 finally
                 {
@@ -285,7 +333,7 @@ namespace AppDrawers
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to delete the temporary shortcut file '{shortcutFilename}'. This file may need to be deleted manually.\n\n{ex.Message}", "Create New Shortcut", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                            MessageBox.Show($"Failed to delete the temporary shortcut file '{shortcutFilename}'. This file may need to be deleted manually.\n\n{ex.GetExceptionMessageTree()}", "Create New Shortcut", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                         }
                     }
                 }
@@ -314,29 +362,26 @@ namespace AppDrawers
                     }
                 };
 
-                if (dirInfo.GetFiles().Length > 0 || dirInfo.GetDirectories().Length > 0)
+                var submenuItem = new ToolStripMenuItem()
                 {
-                    var submenuItem = new ToolStripMenuItem()
-                    {
-                        Text = StubMenu,
-                        Enabled = false,
-                    };
+                    Text = StubMenu,
+                    Enabled = false,
+                };
 
-                    dirMenuItem.DropDownItems.Add(submenuItem);
+                dirMenuItem.DropDownItems.Add(submenuItem);
 
-                    dirMenuItem.DropDownOpening += (sender, e) =>
+                dirMenuItem.DropDownOpening += (sender, e) =>
+                {
+                    if (sender is ToolStripMenuItem tsmi)
                     {
-                        if (sender is ToolStripMenuItem tsmi)
+                        if (tsmi.DropDownItems.Count == 1 && tsmi.DropDownItems[0].Text == StubMenu)
                         {
-                            if (tsmi.DropDownItems.Count == 1 && tsmi.DropDownItems[0].Text == StubMenu)
-                            {
-                                tsmi.DropDownItems.Clear();
+                            tsmi.DropDownItems.Clear();
 
-                                FillMenu(tsmi, dirInfo.FullName, clipping);
-                            }
+                            FillMenu(tsmi, dirInfo.FullName, clipping);
                         }
-                    };
-                }
+                    }
+                };
 
                 AddMenuItem(menu, dirMenuItem).AssignImage(
                     MenuItemTargetTypes.Directory.DefaultIcon,
@@ -394,6 +439,16 @@ namespace AppDrawers
                 Tag = new MenuItemTarget()
                 {
                     Type = MenuItemTargetTypes.OpenFolder,
+                    Target = new DirectoryInfo(directory),
+                },
+            }).Click += OpenMenuItem;
+
+            AddMenuItem(menu, new ToolStripMenuItem()
+            {
+                Text = "New Folder",
+                Tag = new MenuItemTarget()
+                {
+                    Type = MenuItemTargetTypes.NewFolder,
                     Target = new DirectoryInfo(directory),
                 },
             }).Click += OpenMenuItem;
@@ -475,7 +530,7 @@ namespace AppDrawers
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Failed to open the folder.\n\n{ex.Message}", "Open Folder", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    MessageBox.Show($"Failed to open the folder.\n\n{ex.GetExceptionMessageTree()}", "Open Folder", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
             }
         }
@@ -532,7 +587,7 @@ namespace AppDrawers
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Failed to execute the shortcut.\n\n{ex.Message}", "Open Shortcut", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    MessageBox.Show($"Failed to execute the shortcut.\n\n{ex.GetExceptionMessageTree()}", "Open Shortcut", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
             }
         }

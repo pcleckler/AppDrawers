@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AppDrawers
@@ -12,12 +14,15 @@ namespace AppDrawers
     {
         private const string appName = nameof(AppDrawers);
 
+        private static string appUrl;
         private static Logger logger;
 
-        private static int port = 8080;
+        private static int port = 9393;
 
         // Define a Tuple with contentType and buffer set to null as a simple acknowledgement response
         private static (string, byte[]) SimpleAck = (null, null);
+
+        private static Uri uriArg = null;
 
         private static void EvaluateArguments(string[] args)
         {
@@ -25,7 +30,11 @@ namespace AppDrawers
 
             foreach (var arg in args)
             {
-                if (arg.Equals("/port", StringComparison.OrdinalIgnoreCase))
+                if (Uri.TryCreate(arg, UriKind.Absolute, out var tempUri))
+                {
+                    uriArg = tempUri;
+                }
+                else if (arg.Equals("/port", StringComparison.OrdinalIgnoreCase))
                 {
                     state = "port";
                 }
@@ -46,27 +55,36 @@ namespace AppDrawers
         }
 
         [STAThread]
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             try
             {
                 // Initialized
                 EvaluateArguments(args);
 
+                appUrl = $"http://localhost:{port}/{appName}/";
+
+                if (uriArg != null)
+                {
+                    await RequestDirectoryAsync();
+
+                    return;
+                }
+
                 logger = new Logger($"{appName}-{port}-{DateTime.Now.ToString("yyyy-MM-dd-HH")}.log");
 
                 AppDrawer.Initialize();
 
                 // Define listening URL prefixes
-                var prefixes = new List<string>() { $"http://localhost:{port}/{appName}/" };
+                var prefixes = new List<string>() { appUrl };
 
                 // Define possible route handlers
                 var routes = new Dictionary<Regex, HttpServer.ResponseHandler>()
-            {
-                { new Regex("^.*/quit$"), Quit },
-                { new Regex("^.*/check.*$"), context => SimpleAck },
-                { new Regex("^.*/directory.*$"), ShowDirectory },
-            };
+                {
+                    { new Regex("^.*/quit$"), Quit },
+                    { new Regex("^.*/check.*$"), context => SimpleAck },
+                    { new Regex("^.*/directory.*$"), ShowDirectory },
+                };
 
                 var server = new HttpServer(prefixes, routes, logger);
 
@@ -80,7 +98,7 @@ namespace AppDrawers
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Main program error. Terminating.\n\n{ex.Message}", appName, MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                MessageBox.Show($"Main program error. Terminating.\n\n{ex.GetExceptionMessageTree()}", appName, MessageBoxButtons.OK, MessageBoxIcon.Stop);
             }
         }
 
@@ -89,6 +107,28 @@ namespace AppDrawers
             Process.GetCurrentProcess().Kill();
 
             return SimpleAck;
+        }
+
+        private static async Task RequestDirectoryAsync()
+        {
+            try
+            {
+                HttpClient client = new HttpClient(new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true,
+                });
+
+                var response = await client.GetAsync(uriArg);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"Request failed. The server returned a '{response.StatusCode}' response (status code {(int)response.StatusCode}).");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred while attempting to request the specified directory.\n\n{ex.GetExceptionMessageTree()}\n\n Is the {appName} service running?", appName, MessageBoxButtons.OK, MessageBoxIcon.Stop);
+            }
         }
 
         private static (string, byte[]) ShowDirectory(HttpListenerContext context)

@@ -122,6 +122,37 @@ namespace AppDrawers
             return sb.ToString();
         }
 
+        public static string GetExceptionMessageTree(this Exception primaryEx)
+        {
+            Exception tempEx = null;
+            System.Text.StringBuilder returnMessage = null;
+
+            try
+            {
+                returnMessage = new System.Text.StringBuilder();
+                tempEx = primaryEx;
+
+                while (tempEx != null)
+                {
+                    if (returnMessage.Length > 0)
+                        returnMessage.Append(" ");
+
+                    if (!tempEx.Message.EndsWith("."))
+                        returnMessage.Append(tempEx.Message + ".");
+                    else
+                        returnMessage.Append(tempEx.Message);
+
+                    tempEx = tempEx.InnerException;
+                }
+
+                return returnMessage.ToString();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to access exception message tree for exception '{primaryEx.Message}'. {ex.Message}");
+            }
+        }
+
         public static void Recycle(this string filename, bool promptUser = false)
         {
             var fileInfo = new FileInfo(filename);

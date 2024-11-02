@@ -56,21 +56,28 @@ namespace AppDrawers
                 return;
             }
 
-            var menu = new ContextMenuStrip()
+            try
             {
-                BackColor = Color.FromArgb(255, 176, 176, 176)
-            };
+                var menu = new ContextMenuStrip()
+                {
+                    BackColor = Color.FromArgb(255, 176, 176, 176)
+                };
 
-            FillMenu(menu, directory, clipping);
+                FillMenu(menu, directory, clipping);
 
-            SetForegroundWindow(new HandleRef(menu, menu.Handle));
+                SetForegroundWindow(new HandleRef(menu, menu.Handle));
 
-            menu.Show(Cursor.Position);
+                menu.Show(Cursor.Position);
 
-            while (menu.Visible)
+                while (menu.Visible)
+                {
+                    Application.DoEvents();
+                    Thread.Sleep(10);
+                }
+            }
+            catch (Exception ex)
             {
-                Application.DoEvents();
-                Thread.Sleep(10);
+                MessageBox.Show($"An error occurred while attempting to display the specified directory.\n\n{ex.GetExceptionMessageTree()}", nameof(AppDrawers), MessageBoxButtons.OK, MessageBoxIcon.Stop);
             }
         }
 

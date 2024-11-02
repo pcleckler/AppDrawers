@@ -103,7 +103,7 @@ namespace AppDrawers
                         var sfd = new SaveFileDialog()
                         {
                             Title = "Save Clip As...",
-                            Filter = $"Clips (*{extension}*{extension}",
+                            Filter = $"Clips (*{extension})|*{extension}",
                             DefaultExt = extension.Substring(1),
                             FileName = $"{text}{extension}",
                             InitialDirectory = dirinfo.FullName
@@ -310,7 +310,7 @@ namespace AppDrawers
                     }
                 };
 
-                if (dirInfo.GetFiles().Length > 0)
+                if (dirInfo.GetFiles().Length > 0 || dirInfo.GetDirectories().Length > 0)
                 {
                     var submenuItem = new ToolStripMenuItem()
                     {

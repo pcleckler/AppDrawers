@@ -35,13 +35,24 @@ namespace AppDrawers
                 }
                 else
                 {
-                    var icon = IconExtractor.GetIcon(iconFilePath.ExpandEnvironmentVariables(), iconIndex);
+                    var iconExtension = Path.GetExtension(iconFilePath).ToLower();
 
-                    if (icon != null)
+                    if (iconExtension.Equals(".png"))
                     {
-                        tsi.Image = icon.ToBitmap();
+                        tsi.Image = Image.FromFile(iconFilePath);
 
                         ImageCache.Add(imageCacheKey, tsi.Image);
+                    }
+                    else
+                    {
+                        var icon = IconExtractor.GetIcon(iconFilePath.ExpandEnvironmentVariables(), iconIndex);
+
+                        if (icon != null && icon.Height > 0 && icon.Width > 0)
+                        {
+                            tsi.Image = icon.ToBitmap();
+
+                            ImageCache.Add(imageCacheKey, tsi.Image);
+                        }
                     }
                 }
             }

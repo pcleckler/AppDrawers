@@ -29,33 +29,10 @@ namespace AppDrawers
 
             if (File.Exists(filename))
             {
-                var shInfo = new SHFILEINFO();
-
-                shInfo.szDisplayName = new string((char)0, 260);
-                shInfo.szTypeName = new string((char)0, 80);
-
-                SHGetFileInfo(filename, 0, ref shInfo, (uint)Marshal.SizeOf(shInfo), 0x100 | 0x0);
-
-                return Icon.FromHandle(shInfo.hIcon);
+                return Icon.ExtractAssociatedIcon(filename);
             }
 
             return null;
-        }
-
-        [DllImport("shell32.dll")]
-        public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
-
-        public struct SHFILEINFO
-        {
-            public int dwAttributes;
-            public IntPtr hIcon;
-            public int iIcon;
-
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-            public string szDisplayName;
-
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
-            public string szTypeName;
         }
     }
 }

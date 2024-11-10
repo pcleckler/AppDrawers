@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Loading...</title>
+
+        <meta name="viewport" content="
+            viewport-fit=auto,
+            width=device-width,
+            height=device-height,
+            initial-scale=1.0,
+            maximum-scale=10.0,
+            user-scalable=no">
+
+        <meta name="mobile-web-app-capable"       content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        <!-- Status Bar Style defaulted here. Overridden in CSS -->
+        <meta name="mobile-web-app-status-bar-style"       content="black" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+        <!-- Theme-color defaulted here. Overridden in CSS -->
+        <meta name="theme-color" content="#000000" />
+
+<!--        TODO: Supply icon-->
+<!--        <link rel="apple-touch-icon" href="favicon.ico" />-->
+<!--        <link rel="shortcut icon"    href="favicon.ico" type="image/x-icon" />-->
+
+        <link rel="stylesheet" href="index.css" />
+    </head>
+    <body>
+        <script type="module" src="App.mjs"></script>
+        <script>
+            function ProcessNativeMessage(message) {
+                window.app.ProcessNativeMessage(message);
+            }
+        </script>
+    </body>
+</html>

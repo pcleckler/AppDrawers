@@ -1,0 +1,2 @@
+Handle directory navigation
+Provide item context menu

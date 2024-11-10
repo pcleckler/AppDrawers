@@ -7,3 +7,6 @@
 *.suo
 *.user
 /AppDrawers/obj
+/.vs/AppDrawers/config
+/AppDrawersWeb/obj
+/AppDrawersWeb/bin/Debug

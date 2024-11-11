@@ -41,7 +41,14 @@ namespace AppDrawers.GUI
 
         public async void ChangeDirectory(string directory, string clipping)
         {
-            var clientPoint = this.PointToClient(Cursor.Position);
+            var cursorPosition = Cursor.Position;
+
+            var workingArea = Screen.GetWorkingArea(cursorPosition);
+
+            var clientPoint = new Point(
+                cursorPosition.X - workingArea.Left,
+                cursorPosition.Y - workingArea.Top
+            );
 
             var message = new MessageWrapper()
             {
@@ -50,8 +57,8 @@ namespace AppDrawers.GUI
                 {
                     Directory = directory,
                     Clipping = clipping == "true",
-                    CursorX = clientPoint.X + 20,
-                    CursorY = clientPoint.Y + 20,
+                    CursorX = clientPoint.X,
+                    CursorY = clientPoint.Y,
                 }
             };
 

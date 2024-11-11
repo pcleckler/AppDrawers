@@ -24,6 +24,7 @@ export class App {
 
 window.app = new App();
 
+// noinspection JSUnusedLocalSymbols
 function ProcessNativeMessage(message) {
     window.app.ProcessNativeMessage(message);
 }

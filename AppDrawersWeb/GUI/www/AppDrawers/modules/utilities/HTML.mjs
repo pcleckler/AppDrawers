@@ -94,11 +94,11 @@ export class HTML {
      * Creates an HTML element for the specified tag. Note: the element is not added to the document.
      * @param {string} tag The HTML element type (tag) to be created.
      * @param {Object.<string, object>} attributes An object whose keys will be used to set attributes of the element, such as HREF or SRC. Note that a Style attribute can be passed in as an object, but all other attributes will be handled as strings.
-     * @param {Object.<string, string>} style An object whose keys will be used to set style declarations of the element. This parameter can be included in the attributes object, and if style declarations are specified here and also in the attributes parameter, the style declarations will be merged, with the `style` parameter's declarations taking priority.
+     * @param {Object.<string, any>} style An object whose keys will be used to set style declarations of the element. This parameter can be included in the attributes object, and if style declarations are specified here and also in the attributes parameter, the style declarations will be merged, with the `style` parameter's declarations taking priority.
      * @param {Object.<string, object>} properties An object whose keys will be used to set properties of the element, such as innerHTML or innerText.
      * @param {Array.<HTMLElement>} children An array of HTMLElements which will be registered as child elements for the new element.
-     * @param {Object.<string, function(event)>} events An object whose keys will be used to create event listeners for the new element.
-     * @param {function(element)} inlineModifier A callback allowing custom in-line modification of the element. One example use is to grab a reference to the specific element rather than having to create the element externally and pass it in.
+     * @param {HTMLElementEventMap} events An object whose keys will be used to create event listeners for the new element.
+     * @param {function(HTMLElement)} inlineModifier A callback allowing custom in-line modification of the element. One example use is to grab a reference to the specific element rather than having to create the element externally and pass it in.
      * @returns {HTMLElement}
      */
     static Create({tag, attributes = null, style = null, properties = null, children = null, events = null, inlineModifier = null}) {
@@ -132,6 +132,7 @@ export class HTML {
         }
 
         if (events === undefined || events == null) {
+            // noinspection JSValidateTypes
             events = {};
         }
 
@@ -143,7 +144,7 @@ export class HTML {
             if (attribName.toLowerCase() === styleKey) {
                 element.setAttribute(attribName, HTML.ObjectToStyleRule(attributes[attribName]));
             } else {
-                element.setAttribute(attribName, attributes[attribName]);
+                element.setAttribute(attribName, `${attributes[attribName]}`);
             }
         }
 

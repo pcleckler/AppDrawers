@@ -2,12 +2,20 @@
 
 import {HTML} from "../utilities/HTML.mjs";
 import {DirectoryChanged} from "../models/messages/DirectoryChanged.mjs";
+import {ContentItem} from "../models/messages/ContentItem.mjs";
+import {MessageWrapper} from "../models/messages/MessageWrapper.mjs";
+import {ItemTypes} from "../models/ItemTypes.mjs";
+import {ApiServer} from "../controllers/ApiServer.mjs";
 
 export class AppDrawer {
 
     #Element = null;
     #ParentElement = null;
     #Theme = null;
+    #Cursor = null;
+    #ItemPopups = [];
+    #ActivePopup = null;
+    #ActiveItem = null;
 
     constructor(parentElement, theme = null) {
 
@@ -33,11 +41,13 @@ export class AppDrawer {
                 bottom: 0,
                 display: "block",
                 overflow: "hidden",
-                // border: "2px solid green",
             },
             events: {
-                click: (e) => {
-                    this.#SendHideRequest();
+                click: (event) => {
+                    ApiServer.HideMenu();
+                },
+                mousemove: (event) => {
+                    this.#Cursor = {x: event.clientX, y: event.clientY};
                 }
             }
         });
@@ -47,52 +57,109 @@ export class AppDrawer {
 
     ProcessMessage(message) {
 
-        if (!DirectoryChanged.isDirectoryChanged(message.Data)) {
+        if (!MessageWrapper.CanConvert(message)) {
             return;
         }
 
-        let dcMsg = DirectoryChanged.ConvertFromObject(message.Data);
+        let msg = MessageWrapper.ConvertFrom(message);
 
-        fetch(`./getDirectoryContents?dir=${dcMsg.Directory}`)
+        if (!DirectoryChanged.CanConvert(msg.Data)) {
+            return;
+        }
 
-            .then((response) => {
-                if (response.ok) {
-                    return response.json();
+        // Clear all popups
+        this.#Element.innerHTML = "";
+
+        let dcMsg = DirectoryChanged.ConvertFrom(msg.Data);
+
+        ApiServer.GetDirectoryContents(
+            dcMsg.Directory,
+            (message) => {
+
+                if (!Array.isArray(message.Data)) {
+                    return;
                 }
-            })
 
-            .then((data) => {
+                this.#DisplayDirectory(message.Data, dcMsg.CursorX, dcMsg.CursorY, 0, 0);
 
-                // Load menu
-                this.#Load(data, dcMsg.CursorX, dcMsg.CursorY);
-
-                fetch("./displayMenu").then();
-
-            })
-
-            .catch((response) => {
-                //element.innerText = `API Server Version is not available.`
-            })
+                ApiServer.DisplayMenu();
+            },
+        )
     }
 
+    /**
+     * Moves an element to the requested location.
+     * @param {HTMLElement} popupElement The element to be moved.
+     * @param {object} anchorRect The rectangle defining the approximate location to which the element should be moved. The element will be placed in such a way as to remain on-screen.
+     * @param {int} anchorRect.x The left coordinate of the rectangle.
+     * @param {int} anchorRect.y The top coordinate of the rectangle.
+     * @param {int} anchorRect.width The width of the rectangle.
+     * @param {int} anchorRect.height The height of the rectangle.
+     */
+    #DisplayPopup({popupElement, anchorRect}) {
 
+        // Default coordinates to the top-right of the requested rectangle.
+        let bounds = {
+            left: anchorRect.x + anchorRect.width,
+            top: anchorRect.y - anchorRect.height,
+            width: popupElement.offsetWidth,
+            height: popupElement.offsetHeight,
+        }
 
-    #DisplayPopup(popupElement, cursorX, cursorY) {
+        // Determine if coordinates and size of popupElement will clip
+        if ((bounds.left + popupElement.offsetWidth) > this.#Element.offsetWidth) {
+            bounds.left = anchorRect.x - popupElement.offsetWidth;
+        }
 
+        if (bounds.left < 0) {
+            bounds.width = popupElement.offsetWidth + bounds.left;
+        }
+
+        if ((bounds.top + popupElement.offsetHeight) > this.#Element.offsetHeight) {
+            bounds.top = anchorRect.y - popupElement.offsetHeight;
+        }
+
+        if (bounds.top < 0) {
+            bounds.height = popupElement.offsetHeight + bounds.top;
+        }
+
+        // console.log("AnchorRect:", anchorRect);
+        // console.log("PopupElement:", {width: popupElement.offsetWidth, height: popupElement.offsetHeight});
+        // console.log("this.#Element:", {left: this.#Element.offsetLeft, top: this.#Element.offsetTop, width: this.#Element.offsetWidth, height: this.#Element.offsetHeight});
+        // console.log("Bounds:", bounds);
+
+        // Move the popup's coordinates
         HTML.SetStyle(popupElement, {
-            left: `${cursorX}px`,
-            top: `${cursorY}px`,
+            left: `${bounds.left}px`,
+            top: `${bounds.top}px`,
+            width: `${bounds.width}px`,
+            height: `${bounds.height}px`,
         })
     }
 
-    #Load(message, cursorX, cursorY) {
+    #GetRandomId() {
+        return `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    }
 
-        this.#Element.innerHTML = "";
+    #DisplayDirectory(itemList, cursorX, cursorY, width, height) {
 
         let menuElement = null;
         let itemElements = [];
 
-        function highlightElement(element) {
+        let highlightElement = (element) => {
+
+            while (this.#ItemPopups.length > 0) {
+
+                let itemPopup = this.#ItemPopups.pop();
+
+                if (!(this.#ActivePopup != null && itemPopup.id === this.#ActivePopup.id)) {
+                    this.#Element.removeChild(itemPopup);
+                }
+            }
+
+            if (this.#ActivePopup != null) {
+                this.#ItemPopups.push(this.#ActivePopup);
+            }
 
             for (let i = 0; i < itemElements.length; i++) {
                 HTML.SetStyle(itemElements[i], {
@@ -111,17 +178,17 @@ export class AppDrawer {
 
         this.#Element.append(HTML.Create({
             tag: "div",
+            attributes: {
+                id: this.#GetRandomId(),
+            },
             style: {
                 display: "block",
-                // border: "1px solid blue",
                 "background-color": "rgba(40, 40, 40, 0.85)",
                 "border-radius": "5px",
                 "box-shadow": "0px 4px 8px rgba(0, 0, 0, 0.5)",
                 "overflow-y": "auto",
                 padding: "5px",
                 position: "absolute",
-                "max-height": "99vh",
-                "max-width": "99vw",
                 "scrollbar-width": "thin",
                 "scrollbar-color": "rgb(255, 255, 255, 0.1) transparent",
             },
@@ -130,12 +197,19 @@ export class AppDrawer {
             },
         }));
 
-        for (let i = 0; i < message.Data.length; i++) {
+        for (let i = 0; i < itemList.length; i++) {
 
-            let item = message.Data[i];
+            if (!ContentItem.CanConvert(itemList[i])) {
+                continue;
+            }
+
+            let item = ContentItem.ConvertFrom(itemList[i]);
 
             menuElement.append(HTML.Create({
                 tag: "div",
+                attributes: {
+                    id: this.#GetRandomId(),
+                },
                 style: {
                     display: "block",
                 },
@@ -144,7 +218,33 @@ export class AppDrawer {
                 },
                 events: {
                     mouseover: (event) => {
-                        highlightElement(itemElements[i]); // Logical mapping between the itemElements array and the message.Data array. Formerly event.target.
+
+                        let item = itemList[i];
+
+                        let itemElement = itemElements[i];
+
+                        if (item.Type.Type === ItemTypes.Directory.Type && (this.#ActiveItem === null || (this.#ActiveItem.id !== itemElement.id))) {
+                            
+                            ApiServer.GetDirectoryContents(
+                                item.Target,
+                                (message) => {
+
+                                    if (!Array.isArray(message.Data)) {
+                                        return;
+                                    }
+
+                                    let itemPopup = this.#DisplayDirectory(message.Data, event.clientX, event.clientY, itemElement.offsetWidth, itemElement.offsetHeight);
+
+                                    this.#ItemPopups.push(itemPopup);
+
+                                    this.#ActivePopup = itemPopup;
+                                },
+                            )
+
+                            this.#ActiveItem = itemElement;
+                        }
+
+                        highlightElement(itemElement); // Logical mapping between the itemElements array and the itemList array. Formerly event.target.
                     }
                 },
                 children: [
@@ -155,7 +255,7 @@ export class AppDrawer {
                             "white-space": "nowrap",
                         },
                         events: {
-                            click: (event) => {
+                            click: () => {
                                 this.#ItemClicked(item);
                             },
                         },
@@ -194,19 +294,14 @@ export class AppDrawer {
             }));
         }
 
-        this.#DisplayPopup(menuElement, cursorX, cursorY)
+        this.#DisplayPopup({popupElement: menuElement, anchorRect: {x: cursorX, y: cursorY, width: width, height: height}});
+
+        return menuElement;
     }
 
     #ItemClicked(item) {
         alert(item.Text);
-        this.#SendHideRequest();
-    }
-
-    #SendHideRequest() {
-
-        window.scrollTo({top: 0, left: 0, behavior: "instant"});
-
-        fetch("./hideMenu").then();
+        ApiServer.HideMenu();
     }
 }
 

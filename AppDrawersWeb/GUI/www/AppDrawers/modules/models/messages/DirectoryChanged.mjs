@@ -1,5 +1,6 @@
 "use strict";
 
+// noinspection JSUnusedGlobalSymbols
 export class DirectoryChanged {
 
     Directory = "";
@@ -7,6 +8,10 @@ export class DirectoryChanged {
     CursorX = 0;
     CursorY = 0;
 
+    /**
+     * Converts the current object into a basic JavaScript object.
+     * @returns {{}} A JavaScript interpretation of the current object.
+     */
     ConvertToObject() {
         return {
             Directory: this.Directory,
@@ -16,7 +21,12 @@ export class DirectoryChanged {
         }
     }
 
-    static isDirectoryChanged(obj) {
+    /**
+     * Inspects a JavaScript object to determine if the current object's keys are present in the object. This implies that the JavaScript object can be converted into an instance of the current object model.
+     * @param obj
+     * @returns {boolean}
+     */
+    static CanConvert(obj) {
         return (
             "Directory" in obj &&
             "Clipping" in obj &&
@@ -25,9 +35,14 @@ export class DirectoryChanged {
         );
     }
 
-    static ConvertFromObject(data) {
+    /**
+     * Converts a JavaScript object into an instance of the current object model.
+     * @param {object} data The JavaScript object to convert.
+     * @returns {DirectoryChanged} An instance of the current object model.
+     */
+    static ConvertFrom(data) {
 
-        if (!DirectoryChanged.isDirectoryChanged(data)) {
+        if (!DirectoryChanged.CanConvert(data)) {
             throw "Unrecognized DirectoryChanged JSON.";
         }
 
